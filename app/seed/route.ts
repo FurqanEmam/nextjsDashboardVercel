@@ -1,9 +1,10 @@
 import bcrypt from "bcrypt";
 import { db } from "@vercel/postgres";
 import { invoices, customers, revenue, users } from "../lib/placeholder-data";
-import { NextResponse } from "next/server"; // Use NextResponse in API routes
 
-async function seedUsers(client) {
+const client = await db.connect();
+
+async function seedUsers() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
   await client.sql`
     CREATE TABLE IF NOT EXISTS users (
@@ -28,7 +29,7 @@ async function seedUsers(client) {
   return insertedUsers;
 }
 
-async function seedInvoices(client) {
+async function seedInvoices() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
   await client.sql`
@@ -54,7 +55,7 @@ async function seedInvoices(client) {
   return insertedInvoices;
 }
 
-async function seedCustomers(client) {
+async function seedCustomers() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
   await client.sql`
@@ -79,7 +80,7 @@ async function seedCustomers(client) {
   return insertedCustomers;
 }
 
-async function seedRevenue(client) {
+async function seedRevenue() {
   await client.sql`
     CREATE TABLE IF NOT EXISTS revenue (
       month VARCHAR(4) NOT NULL UNIQUE,
@@ -101,23 +102,21 @@ async function seedRevenue(client) {
 }
 
 export async function GET() {
-  const client = await db.connect(); // Move the connection inside the function
+  // return Response.json({
+  //   message:
+  //     "Uncomment this file and remove this line. You can delete this file when you are finished.",
+  // });
   try {
     await client.sql`BEGIN`;
-
-    await seedUsers(client);
-    await seedCustomers(client);
-    await seedInvoices(client);
-    await seedRevenue(client);
-
+    await seedUsers();
+    await seedCustomers();
+    await seedInvoices();
+    await seedRevenue();
     await client.sql`COMMIT`;
 
-    return NextResponse.json({ message: "Database seeded successfully" });
+    return Response.json({ message: "Database seeded successfully" });
   } catch (error) {
     await client.sql`ROLLBACK`;
-    console.error("Error seeding database:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  } finally {
-    client.release(); // Ensure the client connection is released
+    return Response.json({ error }, { status: 500 });
   }
 }
